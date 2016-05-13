@@ -21,7 +21,7 @@ class EstimatorClass(object):
         return lr + reg
 
     @staticmethod
-    def gradientFunction(X, y, thetas, alpha=.01, iters=1500):
+    def gradientFunction(X, y, thetas, alpha=.01, nlambda=.6, iters=1500):
         '''
         :param X: feature vector for items i
         :param y: ratings by user j on items i
@@ -32,12 +32,12 @@ class EstimatorClass(object):
         '''
 
         for i in np.arange(iters):
-            thetas = thetas - alpha*(X.T.dot((X.dot(thetas)-y)))
+            thetas = thetas - alpha*(1/y.size())*(X.dot(X.T.dot(thetas-y)))
 
         return thetas
 
     def fit(self):
-        return "bla"
+        return "not implemented yet"
 
     def predict(self):
-        return "bla"
+        return "not implemented yet"
