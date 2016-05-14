@@ -3,9 +3,12 @@ from scipy.optimize import minimize
 
 class EstimatorClass(object):
 
-    def __init__(self, fit_intercept=True, threshold=0.5):
+    def __init__(self, fit_intercept=True):
+        '''
+        :param fit_intercept: fit model with an intercept
+        '''
+
         self.fit_intercept_ = fit_intercept
-        self.threshold_ = threshold
 
     @staticmethod
     def costFunction(thetas, X, y, nlambda=.6):
