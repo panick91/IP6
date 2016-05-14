@@ -21,10 +21,10 @@ class DataClass(object):
         '''
         :param X: Data set 1
         :param y: Data set 2
-        :param test_size: epresent the proportion of the dataset to include in the test split
+        :param test_size: represent the proportion of the dataset to include in the test split
         :param random_state: pseudo-random number generator state used for random sampling
         :return: X_train, X_test, y_train, y_test
         '''
 
-        return train_test_split(X, y, test_size, random_state)
+        return train_test_split(X, y, test_size=test_size, random_state=random_state)
 

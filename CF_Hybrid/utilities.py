@@ -27,7 +27,7 @@ class EstimatorClass(object):
         return lr + reg
 
     @staticmethod
-    def gradientFunction(thetas, X, y, alpha=.01, nlambda=.6, iters=1500):
+    def gradientFunction(thetas, X, y, alpha=.01, iters=1500):
         '''
         :param thetas: parameter vector for user j
         :param X: feature vector for items i
