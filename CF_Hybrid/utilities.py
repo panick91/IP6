@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+from sklearn.metrics import r2_score
 
 class EstimatorClass(object):
 
@@ -79,8 +80,19 @@ class EstimatorClass(object):
     def predict(self, thetas, X):
         '''
         :param thetas: parameter vector for user j
-        :param X: feature vector for items i
-        :return: predicted model
+        :param X: samples
+        :return: predicted values
         '''
 
         return X.dot(thetas)
+
+    def score(self, thetas, X, y):
+        '''
+        :param X: test samples
+        :param y: true values for X
+        :return: coefficient of determination R^2 of the prediction
+        '''
+
+        y_pred = self.predict(thetas, X)
+
+        return r2_score(y, y_pred, multioutput='variance_weighted')
