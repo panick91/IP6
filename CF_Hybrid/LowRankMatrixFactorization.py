@@ -20,14 +20,13 @@ class EstimatorClass(object):
         :param nlambda: regularization parameter
         :return: cost value
         '''
-
-        lr = 1/2*(np.sum(np.square(X.dot(thetas)-y)))
-        reg = nlambda/2*(np.square(X.dot(thetas)))
+        lr = 1/2*(np.sum(np.square(X.dot(thetas.T)-y)))
+        reg = nlambda/2*np.sum((np.square(X.dot(thetas.T))))
 
         return lr + reg
 
     @staticmethod
-    def gradientFunction(thetas, X, y, alpha=.01, iters=1500):
+    def gradientFunction(thetas, X, y, alpha=.01, lamb = 0.5):
         '''
         :param thetas: parameter vector for user j
         :param X: feature vector for items i
@@ -37,8 +36,7 @@ class EstimatorClass(object):
         :return: updated thetas
         '''
 
-        for i in np.arange(iters):
-            thetas = thetas - alpha*(1/y)*(X.dot(X.T.dot(thetas-y)))
+        thetas = thetas - alpha*(np.sum(X.dot(thetas.T) - y) * X + lamb * thetas)
 
         return thetas
 
@@ -56,7 +54,7 @@ class EstimatorClass(object):
 
         if self.fit_intercept_:
             x = np.insert(self.coef_, 0, self.intercept_)
-            args = ((np.hstack((np.ones((X.shape[0], 1)), X)), y), alpha)
+            args = (np.hstack((np.ones((X.shape[0], 1)), X)), y, alpha)
         else:
             x = self.coef_
             args = (X, y, alpha)
