@@ -2,8 +2,8 @@ import numpy as np
 from scipy.optimize import minimize
 from sklearn.metrics import r2_score
 
-class EstimatorClass(object):
 
+class EstimatorClass(object):
     def __init__(self, fit_intercept=True):
         '''
         :param fit_intercept: fit model with an intercept
@@ -12,7 +12,7 @@ class EstimatorClass(object):
         self.fit_intercept_ = fit_intercept
 
     @staticmethod
-    def costFunction(thetas, X, y, nlambda=.6):
+    def costFunction(thetas, X, y, R, nlambda=.6):
         '''
         :param thetas: parameter vector for user jfx
         :param X: feature vector for items i
@@ -20,13 +20,14 @@ class EstimatorClass(object):
         :param nlambda: regularization parameter
         :return: cost value
         '''
-        lr = 1/2*(np.sum(np.square(X.dot(thetas.T)-y)))
-        reg = nlambda/2*np.sum((np.square(X.dot(thetas.T))))
+        thetas = thetas.reshape(y.shape[1], X.shape[1])
+        lr = 1 / 2 * (np.sum(np.square((X.dot(thetas.T) - y) * R)))
+        reg = nlambda / 2 * np.sum(np.square(thetas[:, 1:X.shape[1]]))
 
         return lr + reg
 
     @staticmethod
-    def gradientFunction(thetas, X, y, alpha=.01, lamb = 0.5):
+    def gradientFunction(thetas, X, y, R, alpha=.01, lamb=0.8):
         '''
         :param thetas: parameter vector for user j
         :param X: feature vector for items i
@@ -36,11 +37,18 @@ class EstimatorClass(object):
         :return: updated thetas
         '''
 
-        thetas = thetas - alpha*(np.sum(X.dot(thetas.T) - y) * X + lamb * thetas)
+        thetas = thetas.reshape(y.shape[1], X.shape[1])
+        # theta0 = alpha * np.sum(((X.dot(thetas.T) - y) * R).T.dot(X[:, 0].reshape(X.shape[0], 1)), axis=1)
 
-        return thetas
+        # grad = [alpha * np.sum((((X.dot(thetas.T) - y) * R).T.dot(X[:, j + 1].reshape(X.shape[0], 1)) + lamb * (
+        #     thetas[:, j + 1].reshape(thetas.shape[0], 1))), axis=1) for j in range(X.shape[1] - 1)]
 
-    def fit(self, X, y, alpha=.01, iters=1500):
+        theta_grad = ((X.dot(thetas.T) - y) * R).T.dot(X)
+        theta_grad += lamb * thetas
+
+        return theta_grad.ravel()
+
+    def fit(self, X, y, thetas, R, alpha=.01, iters=1500):
         '''
         :param X: feature vector for items i
         :param y: ratings by user j on items i
@@ -49,23 +57,23 @@ class EstimatorClass(object):
         :return: fitted model
         '''
 
-        self.coef_ = np.zeros(X.shape[1])
+        self.coef_ = thetas
         self.intercept_ = 0.
 
         if self.fit_intercept_:
-            x = np.insert(self.coef_, 0, self.intercept_)
-            args = (np.hstack((np.ones((X.shape[0], 1)), X)), y, alpha)
+            thetas = np.hstack((np.ones((self.coef_.shape[0], 1)), self.coef_))
+            args = (np.hstack((np.ones((X.shape[0], 1)), X)), y, R, alpha)
         else:
-            x = self.coef_
-            args = (X, y, alpha)
+            thetas = self.coef_
+            args = (X, y, R, alpha)
 
         result = minimize(
             EstimatorClass.costFunction,
-            x,
+            thetas,
             jac=EstimatorClass.gradientFunction,
             args=args,
             method='L-BFGS-B',
-            options={'disp': True, 'maxiter': iters, })
+            options={'disp': True, 'maxiter': iters,})
 
         if self.fit_intercept_:
             self.intercept_ = result['x'][0]
@@ -82,7 +90,7 @@ class EstimatorClass(object):
         :return: predicted values
         '''
 
-        return X.dot(thetas)
+        return X.dot(thetas.T)
 
     def score(self, thetas, X, y):
         '''

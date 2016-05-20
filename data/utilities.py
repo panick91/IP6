@@ -22,12 +22,13 @@ class DataClass(object):
 
         X = self.load_xmatrix()
         thetas = self.load_thetamatrix()
-        y = self.load_ymatrix((X.shape[0], thetas.shape[0]))
+        y, R = self.load_ymatrix((X.shape[0], thetas.shape[0]))
 
-        return X, y
+        return X, y, R
 
     def load_xmatrix(self):
         df = pd.read_csv(os.path.join(self.csvPath, self.xFile_), encoding="utf-8-sig", delimiter=';')
+        df = df.fillna(0)
         matrix = np.array(df[self.columnsX])
 
         return matrix
@@ -44,10 +45,11 @@ class DataClass(object):
         ads = np.array(df[['aIndex']]).flatten()
         ratings = np.array(df[['Rating']]).flatten()
 
-        matrix = coo_matrix((ratings, (ads, users)), (817, 9253), dtype=np.float).toarray()
-        return matrix
+        rating_matrix = coo_matrix((ratings, (ads, users)), dims, dtype=np.float).toarray()
+        r = coo_matrix((ratings > 0, (ads, users)), dims, dtype=np.float).toarray()
+        return rating_matrix, r
 
-    def split_data(self, X, y, test_size=.25, random_state=42):
+    def split_data(self, X, y, R, test_size=.25, random_state=42):
         '''
         :param X: Data set 1
         :param y: Data set 2
@@ -56,4 +58,4 @@ class DataClass(object):
         :return: X_train, X_test, y_train, y_test
         '''
 
-        return train_test_split(X, y, test_size=test_size, random_state=random_state)
+        return train_test_split(X, y, R, test_size=test_size, random_state=random_state)
