@@ -20,14 +20,14 @@ class EstimatorClass(object):
         :param nlambda: regularization parameter
         :return: cost value
         '''
-        thetas = thetas.reshape(y.shape[1], X.shape[1])
+        thetas =    thetas.reshape(y.shape[1], X.shape[1])
         lr = 1 / 2 * (np.sum(np.square((X.dot(thetas.T) - y) * R)))
-        reg = nlambda / 2 * np.sum(np.square(thetas[:, 1:X.shape[1]]))
+        reg = nlambda / 2 * np.sum(np.square(thetas))
 
         return lr + reg
 
     @staticmethod
-    def gradientFunction(thetas, X, y, R, alpha=.01, lamb=0.8):
+    def gradientFunction(thetas, X, y, R, alpha=.01, lamb=0.6):
         '''
         :param thetas: parameter vector for user j
         :param X: feature vector for items i
