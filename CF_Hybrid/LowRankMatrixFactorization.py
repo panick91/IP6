@@ -1,104 +1,66 @@
 import numpy as np
+import scipy
+from numpy import r_
 from scipy.optimize import minimize
 from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
 
 
 class EstimatorClass(object):
-    def __init__(self, fit_intercept=True):
-        '''
-        :param fit_intercept: fit model with an intercept
-        '''
+    def __init__(self, X):
 
-        self.fit_intercept_ = fit_intercept
+        self.X = X
+        self.theta = []
 
     @staticmethod
-    def costFunction(thetas, X, y, R, nlambda=.6):
-        '''
-        :param thetas: parameter vector for user jfx
-        :param X: feature vector for items i
-        :param y: ratings by user j on items i
-        :param nlambda: regularization parameter
-        :return: cost value
-        '''
-        thetas =    thetas.reshape(y.shape[1], X.shape[1])
-        lr = 1 / 2 * (np.sum(np.square((X.dot(thetas.T) - y) * R)))
-        reg = nlambda / 2 * np.sum(np.square(thetas))
-
-        return lr + reg
+    def unroll_params(p, num_x, num_users, num_features):
+        # Retrieve the X and theta matrixes from X_and_theta, based on their dimensions (num_features, num_movies, num_movies)
+        X = p[:num_x * num_features]
+        X = X.reshape((num_features, num_x)).transpose()
+        theta = p[num_x * num_features:]
+        theta = theta.reshape(num_features, num_users).transpose()
+        return X, theta
 
     @staticmethod
-    def gradientFunction(thetas, X, y, R, alpha=.01, lamb=0.6):
-        '''
-        :param thetas: parameter vector for user j
-        :param X: feature vector for items i
-        :param y: ratings by user j on items i
-        :param alpha: learning rate
-        :param iters: number of iterations
-        :return: updated thetas
-        '''
+    def costFunction(p, y, r, num_x, num_users, num_features, alpha):
 
-        thetas = thetas.reshape(y.shape[1], X.shape[1])
-        # theta0 = alpha * np.sum(((X.dot(thetas.T) - y) * R).T.dot(X[:, 0].reshape(X.shape[0], 1)), axis=1)
+        X, theta = EstimatorClass.unroll_params(p, num_x, num_users, num_features)
+        cost = np.sum((X.dot(theta.T) * r - y) ** 2) / 2
+        reg = (alpha / 2) * (np.sum(theta ** 2)) #+ np.sum(X ** 2))
+        return cost + reg
 
-        # grad = [alpha * np.sum((((X.dot(thetas.T) - y) * R).T.dot(X[:, j + 1].reshape(X.shape[0], 1)) + lamb * (
-        #     thetas[:, j + 1].reshape(thetas.shape[0], 1))), axis=1) for j in range(X.shape[1] - 1)]
+    @staticmethod
+    def gradientFunction(p, y, r, num_x, num_users, num_features, alpha):
 
-        theta_grad = ((X.dot(thetas.T) - y) * R).T.dot(X)
-        theta_grad += lamb * thetas
+        X, theta = EstimatorClass.unroll_params(p, num_x, num_users, num_features)
+        difference = X.dot(theta.T) * r - y
+        X_grad = difference.dot(theta) + alpha * X
+        theta_grad = difference.T.dot(X) + alpha * theta
+        return r_[X_grad.T.flatten(), theta_grad.T.flatten()]
 
-        return theta_grad.ravel()
+    def fit(self, p, y, R, num_x, num_users, num_features, alpha=30):
 
-    def fit(self, X, y, thetas, R, alpha=.01, iters=1500):
-        '''
-        :param X: feature vector for items i
-        :param y: ratings by user j on items i
-        :param alpha: learning rate
-        :param iters: number of iterations
-        :return: fitted model
-        '''
+        min = scipy.optimize.fmin_cg(EstimatorClass.costFunction, fprime=EstimatorClass.gradientFunction, x0=p,
+                                     args=(y, R, num_x, num_users, num_features, alpha),
+                                     maxiter=1500, disp=True, full_output=True)
 
-        self.coef_ = thetas
-        self.intercept_ = 0.
+        cost, new_p = min[1], min[0]
 
-        if self.fit_intercept_:
-            thetas = np.hstack((np.ones((self.coef_.shape[0], 1)), self.coef_))
-            args = (np.hstack((np.ones((X.shape[0], 1)), X)), y, R, alpha)
-        else:
-            thetas = self.coef_
-            args = (X, y, R, alpha)
-
-        result = minimize(
-            EstimatorClass.costFunction,
-            thetas,
-            jac=EstimatorClass.gradientFunction,
-            args=args,
-            method='L-BFGS-B',
-            options={'disp': True, 'maxiter': iters,})
-
-        if self.fit_intercept_:
-            self.intercept_ = result['x'][0]
-            self.coef_ = result['x'][1:]
-        else:
-            self.coef_ = result['x']
+        X, theta = EstimatorClass.unroll_params(new_p, num_x, num_users, num_features)
+        # self.X = X
+        self.theta = theta
 
         return self
 
     def predict(self, thetas, X):
-        '''
-        :param thetas: parameter vector for user j
-        :param X: samples
-        :return: predicted values
-        '''
 
         return X.dot(thetas.T)
 
-    def score(self, thetas, X, y):
-        '''
-        :param X: test samples
-        :param y: true values for X
-        :return: coefficient of determination R^2 of the prediction
-        '''
+    def score(self, thetas, X, y, method='R2-Score'):
 
         y_pred = self.predict(thetas, X)
 
-        return r2_score(y, y_pred, multioutput='variance_weighted')
+        if method == 'R2-Score':
+            return r2_score(y, y_pred, multioutput='uniform_average')
+        if method == 'mean_squared_error':
+            return mean_squared_error(y, y_pred)
