@@ -10,6 +10,9 @@ utilities = d.DataClass()
 # load CSV files into matrices
 X, ratings, hasRated = utilities.load_data()
 
+# override X
+X = np.random.rand(X.shape[0], X.shape[1])
+
 # Normalize data
 Xstd = (X - X.mean(axis=0)) / X.std(axis=0)
 ystd = (ratings - ratings.mean(axis=0)) / ratings.std(axis=0)
@@ -19,11 +22,13 @@ Xstd[isnan(Xstd)] = 0
 ystd[isnan(ystd)] = 0
 
 # Cross-Validation split
-X_train, X_test, ratings_train, ratings_test, hasRated_train, hasRated_test = utilities.split_data(Xstd, ratings,
+X_train, X_test, ratings_train, ratings_test, hasRated_train, hasRated_test = utilities.split_data(Xstd, ystd,
                                                                                                    hasRated)
 # Generate theta
 theta_train = np.random.rand(ratings_train.shape[1], X_train.shape[1])
 theta_test = np.random.rand(ratings_test.shape[1], X_test.shape[1])
+
+theta_train = (theta_train - theta_train.mean(axis=0)) / theta_train.std(axis=0)
 
 p = r_[X_train.T.flatten(), theta_train.T.flatten()]
 num_x = X_train.shape[0]
@@ -35,5 +40,5 @@ estimator = h.EstimatorClass(X_train).fit(p, ratings_train, hasRated_train, num_
 
 # Scores
 print(estimator.score(theta_train, X_train, ratings_train))
-print(estimator.score(theta_test, X_test, ratings_test))
-print(estimator.score(theta_test, X_test, ratings_test, 'mean_squared_error'))
+# print(estimator.score(theta_test, X_test, ratings_test))
+# print(estimator.score(theta_test, X_test, ratings_test, 'mean_squared_error'))

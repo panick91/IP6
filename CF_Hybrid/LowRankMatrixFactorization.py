@@ -10,7 +10,7 @@ class EstimatorClass(object):
     def __init__(self, X):
 
         self.X = X
-        self.theta = []
+        self.theta = np.array(0)
 
     @staticmethod
     def unroll_params(p, num_x, num_users, num_features):
@@ -26,7 +26,7 @@ class EstimatorClass(object):
 
         X, theta = EstimatorClass.unroll_params(p, num_x, num_users, num_features)
         cost = np.sum((X.dot(theta.T) * r - y) ** 2) / 2
-        reg = (alpha / 2) * (np.sum(theta ** 2)) #+ np.sum(X ** 2))
+        reg = (alpha / 2) * (np.sum(theta ** 2) + np.sum(X ** 2))
         return cost + reg
 
     @staticmethod
@@ -47,7 +47,7 @@ class EstimatorClass(object):
         cost, new_p = min[1], min[0]
 
         X, theta = EstimatorClass.unroll_params(new_p, num_x, num_users, num_features)
-        # self.X = X
+        self.X = X
         self.theta = theta
 
         return self
@@ -56,9 +56,9 @@ class EstimatorClass(object):
 
         return X.dot(thetas.T)
 
-    def score(self, thetas, X, y, method='R2-Score'):
+    def score(self, thetas, X, y, method='mean_squared_error'):
 
-        y_pred = self.predict(thetas, X)
+        y_pred = self.predict(self.theta, self.X)
 
         if method == 'R2-Score':
             return r2_score(y, y_pred, multioutput='uniform_average')
